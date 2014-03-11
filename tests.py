@@ -9,7 +9,9 @@ class MicroblogTest(unittest.TestCase):
         self.db.create_all()
 
     def tearDown(self):
+        self.db.session.remove()
         self.db.drop_all()
+
 
     def test_empty_database(self):
         self.assertEquals(len(Post.query.all()), 0)
@@ -26,7 +28,8 @@ class MicroblogTest(unittest.TestCase):
         self.assertTrue(post.pub_date)
 
     def test_long_title(self):
-        write_post("""THOU HAST WRITTEN A RIDICULOUS TITLE
+        with self.assertRaises(DataError):
+            write_post("""THOU HAST WRITTEN A RIDICULOUS TITLE
                     THAT SHALL EXCEED THE MAXIMIUM THRESHOLD ALLOWED""",
                     "I LOVE UNIT-TESTING IN PYTHON!!!!")
 
