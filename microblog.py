@@ -8,9 +8,12 @@ db = SQLAlchemy(app)
 
 
 def write_post(title, text):
-    post = Post(title, text)
-    db.session.add(post)
-    db.session.commit()
+    if title and text:
+        post = Post(title, text)
+        db.session.add(post)
+        db.session.commit()
+    else:
+        raise ValueError("Error: title and text required")
 
 
 def read_posts():

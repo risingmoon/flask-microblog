@@ -15,9 +15,25 @@ class MicroblogTest(unittest.TestCase):
         self.assertEquals(len(Post.query.all()), 0)
 
     def test_write_post(self):
-        write_post("Python", "I LOVE UNIT-TESTING IN PYTHON!!!!")
+        title = "Python"
+        body = "I LOVE UNIT-TESTING IN PYTHON!!!!"
+        write_post(title, body)
         self.assertEquals(len(Post.query.all()), 1)
-    
+        post = Post.query.all()[0]
+        #Test Attributes
+        self.assertEquals(post.title, title)
+        self.assertEquals(post.body, body)
+        self.assertTrue(post.pub_date)
+
+    def test_long_title(self):
+        write_post("""THOU HAST WRITTEN A RIDICULOUS TITLE
+                    THAT SHALL EXCEED THE MAXIMIUM THRESHOLD ALLOWED""",
+                    "I LOVE UNIT-TESTING IN PYTHON!!!!")
+
+    def test_empty_title(self):
+        with self.assertRaises(ValueError):
+            write_post(None, "I LOVE UNIT-TESTING IN PYTHON!!!!")
+
     def test_read_posts(self):
         pass
 
