@@ -1,10 +1,17 @@
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 from datetime import datetime
+from flask.ext.script import Manager
+from flask.ext.migrate import Migrate, MigrateCommand
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql:///microblog"
 db = SQLAlchemy(app)
+
+migrate = Migrate(app, db)
+
+manager = Manager(app)
+manager.add_command('db', MigrateCommand)
 
 
 def write_post(title, text):
@@ -17,17 +24,14 @@ def write_post(title, text):
 
 
 def read_posts():
-    pass
-    #return db.query_all()
+    return Post.query.order_by(Post.pub_date.desc()).all()
 
 
 def read_post(id):
-    pass
-    # post = Post.query.filter_by(id=id)
-    # if post:
-    #     return post
-    # else:
-    #     raise EnvironmentError
+    if Post.query.get(id):
+        return Post.query.get(id)
+    else:
+        raise KeyError("Error: Key not found")
 
 
 class Post(db.Model):
@@ -46,4 +50,4 @@ class Post(db.Model):
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    manager.run()
