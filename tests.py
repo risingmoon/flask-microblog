@@ -28,7 +28,6 @@ class MicroblogTest(unittest.TestCase):
         self.assertTrue(post.pub_date)
 
     def test_long_title(self):
-
         with self.assertRaises(DataError):
             write_post("""THOU HAST WRITTEN A RIDICULOUS TITLE
                     THAT SHALL EXCEED THE MAXIMIUM THRESHOLD ALLOWED""",
@@ -37,6 +36,10 @@ class MicroblogTest(unittest.TestCase):
     def test_empty_title(self):
         with self.assertRaises(ValueError):
             write_post(None, "I LOVE UNIT-TESTING IN PYTHON!!!!")
+
+    def test_empty_body(self):
+        with self.assertRaises(ValueError):
+            write_post("Python", None)
 
     def test_read_posts(self):
         title_lists = ['Python', 'Javascript', 'Rails', 'iOS']
