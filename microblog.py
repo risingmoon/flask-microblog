@@ -34,6 +34,36 @@ def read_post(id):
         raise KeyError("Error: Key not found")
 
 
+@app.route('/')
+def list_page():
+    pass
+
+
+@app.route('/blog/<id>')
+def details_page():
+    pass
+
+
+@app.route('/add')
+def add_page():
+    #if request.method == "GET":
+    #Template Render
+    pass
+
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True)
+    password = db.Column(db.String(30))
+
+    def __init__(self, username, password):
+        self.username = username
+        self.password = password
+
+    def __repr__(self):
+        return '<User %r>' % self.username
+
+
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(80))
