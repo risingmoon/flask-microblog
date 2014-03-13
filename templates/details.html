@@ -1,0 +1,6 @@
+{% extends "layout.html" %}
+{% block body %}
+    <h1>{{ post.title }}</h1>
+    <p>{{ post.pub_date|safe }}<p>
+    <p>{{ post.body|safe }}<p>
+{% endblock %}
