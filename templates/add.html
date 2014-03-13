@@ -1,6 +1,6 @@
 {% extends "layout.html" %}
 {% block body %}
-
+    {% if session.logged_in %}
     <form action="/add" method=post class=add-entry>
       <dl>
         <dt>Title:
@@ -10,4 +10,5 @@
         <dd><input type=submit value=Share>
       </dl>
     </form>
+    {% endif %}
 {% endblock %}
