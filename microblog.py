@@ -10,12 +10,20 @@ from datetime import datetime
 from flask.ext.script import Manager
 from flask.ext.migrate import Migrate, MigrateCommand
 from sqlalchemy.orm.exc import NoResultFound
+from flask.ext.mail import Mail, Message
+import random
+import string
 import pdb
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql:///microblog"
 app.config['USERNAME'] = "justin"
 app.config['PASSWORD'] = "password"
+app.config['MAIL_PORT'] = 5000
+
+mail = Mail()
+mail.init_app(app)
+
 
 ###DON'T FORGET TO CHANGE THIS!!!
 app.config['SECRET_KEY'] = 'blank'
@@ -41,7 +49,6 @@ def write_post(title, text, categories=None):
                 try:
                     cat = Category.query.filter(Category.name == name).one()
                 except NoResultFound:
-                    
                     cat = Category(name)
                     db.session.add(cat)
                     db.session.commit()
@@ -67,11 +74,36 @@ def read_post(id):
         raise KeyError("Error: Key not found")
 
 
+def register(email, username, password):
+    if email and username and password:
+        registration = Registration(email, username, password)
+        db.session.add(registration)
+        db.session.commit()
+        return registration
+    else:
+        raise ValueError("Crap. You're missing something.")
+
+
+def create_user(username, password, email):
+    """ Creates registered user. """
+    db.session.add(User(username, password, email))
+    db.session.commit()
+
+
 @app.route('/', methods=['GET'])
 def list_view():
     """Sends a response of all exisiting posts"""
-    post_list = read_posts()
-    return render_template('lists.html', posts=post_list)
+    # post_list = read_posts()
+    # return render_template('lists.html', posts=post_list)
+    send_msg()
+    return render_template('lists.html')
+
+
+def send_msg():
+    msg = Message("Hello",
+                  sender="from@example.com",
+                  recipients=["justindavidlee88@gmail.com"])
+    mail.send(msg)
 
 
 @app.route('/post/<int:id>/', methods=['GET'])
@@ -135,11 +167,10 @@ categories = db.Table('categories',
                                 db.Integer, db.ForeignKey('post.id'))
                       )
 
+
 @app.route('/registration')
 def register_view():
-    
-
-
+    pass
 
 
 class User(db.Model):
@@ -147,12 +178,14 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True)
     password = db.Column(db.String(30))
+    email = db.Column(db.String(80), unique=True)
     posts = db.relationship('Post', backref='user',
                             lazy='dynamic')
 
-    def __init__(self, username, password):
+    def __init__(self, username, password, email):
         self.username = username
         self.password = password
+        self.email = email
 
     def __repr__(self):
         return '<User %r>' % self.username
@@ -191,6 +224,28 @@ class Category(db.Model):
 
     def __repr__(self):
         return '<Category %r>' % self.name
+
+
+class Registration(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(32), unique=True)
+    email = db.Column(db.String(40), unique=True)
+    username = db.Column(db.String(20), unique=True)
+    password = db.Column(db.String(20))
+    date = db.Column(db.DateTime)
+
+    def __init__(self, email, username, password):
+        #self.key = str(int(randint(10**15, 10**16-1)))
+        self.key = ''.join(random.choice(string.ascii_uppercase)
+                           for i in range(12))
+        self.date = datetime.utcnow()
+        self.email = email
+        self.username = username
+        self.password = password
+
+    def __repr__(self):
+        return 'REG_KEY: %r' % self.key
+
 
 if __name__ == '__main__':
     manager.run()
