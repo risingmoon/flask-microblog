@@ -3,9 +3,8 @@ from flask import request
 from microblog import app, write_post, read_posts, db, Post, read_post
 from sqlalchemy.exc import DataError
 
-# with app.test_client_context()
 
-class MicroblogTest(unittest.TestCase):
+class MethodTest(unittest.TestCase):
 
     def setUp(self):
         self.db = db
@@ -18,7 +17,7 @@ class MicroblogTest(unittest.TestCase):
 
     def test_list_view_url(self):
         with self.client as client:
-            rv = client.get('/')
+            client.get('/')
             assert request.path == '/'
 
     def test_list_view(self):
@@ -31,12 +30,11 @@ class MicroblogTest(unittest.TestCase):
 
     def test_details_view(self):
         with self.client as client:
-            rv = client.get('/posts/1')
+            client.get('/posts/1')
 
     def write_posts(self, title_lists):
         for title in title_lists:
             write_post(title, "BLANK BODY")
-
 
     def test_empty_database(self):
         self.assertEquals(len(Post.query.all()), 0)
@@ -54,9 +52,10 @@ class MicroblogTest(unittest.TestCase):
 
     def test_long_title(self):
         with self.assertRaises(DataError):
-            write_post("""THOU HAST WRITTEN A RIDICULOUS TITLE
-                    THAT SHALL EXCEED THE MAXIMIUM THRESHOLD ALLOWED""",
-                    "I LOVE UNIT-TESTING IN PYTHON!!!!")
+            write_post(
+                """THOU HAST WRITTEN A RIDICULOUS TITLE THAT
+                SHALL EXCEED THE MAXIMIUM THRESHOLD ALLOWED""",
+                "I LOVE UNIT-TESTING IN PYTHON!!!!")
 
     def test_empty_title(self):
         with self.assertRaises(ValueError):
@@ -83,6 +82,9 @@ class MicroblogTest(unittest.TestCase):
         with self.assertRaises(KeyError):
             read_post(6)
 
+
+class ViewTest(unittest.TestCase):
+
     def login(self, username, password):
         return self.app.post('/login', data=dict(
             username=username,
@@ -91,7 +93,6 @@ class MicroblogTest(unittest.TestCase):
 
     def logout(self):
         return self.app.get('/logout', follow_redirects=True)
-
 
 
 if __name__ == '__main__':

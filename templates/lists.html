@@ -3,8 +3,8 @@
 
   <ul class=posts>
   {% for post in posts %}
-    <li><h2>{{ post.title }}</h2>{{ post.body|safe }}
-  {% else %}
+    <li>[{{ post.pub_date }}] <b>{{ post.title}}</b>
+    {% else %}
     <li><em>Inconcievable.  No entries here so far</em>
   {% endfor %}
   </ul>
