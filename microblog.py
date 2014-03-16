@@ -10,19 +10,19 @@ from datetime import datetime
 from flask.ext.script import Manager
 from flask.ext.migrate import Migrate, MigrateCommand
 from sqlalchemy.orm.exc import NoResultFound
-from flask.ext.mail import Mail, Message
-import random
-import string
+# from flask.ext.mail import Mail, Message
+# import random
+# import string
 import pdb
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql:///microblog"
-app.config['USERNAME'] = "justin"
+app.config['USERNAME'] = "username"
 app.config['PASSWORD'] = "password"
 app.config['MAIL_PORT'] = 5000
 
-mail = Mail()
-mail.init_app(app)
+# mail = Mail()
+# mail.init_app(app)
 
 
 ###DON'T FORGET TO CHANGE THIS!!!
@@ -74,14 +74,14 @@ def read_post(id):
         raise KeyError("Error: Key not found")
 
 
-def register(email, username, password):
-    if email and username and password:
-        registration = Registration(email, username, password)
-        db.session.add(registration)
-        db.session.commit()
-        return registration
-    else:
-        raise ValueError("Crap. You're missing something.")
+# def register(email, username, password):
+#     if email and username and password:
+#         registration = Registration(email, username, password)
+#         db.session.add(registration)
+#         db.session.commit()
+#         return registration
+#     else:
+#         raise ValueError("Crap. You're missing something.")
 
 
 def create_user(username, password, email):
@@ -93,17 +93,17 @@ def create_user(username, password, email):
 @app.route('/', methods=['GET'])
 def list_view():
     """Sends a response of all exisiting posts"""
-    # post_list = read_posts()
-    # return render_template('lists.html', posts=post_list)
-    send_msg()
-    return render_template('lists.html')
+    post_list = read_posts()
+    return render_template('lists.html', posts=post_list)
+    # send_msg()
+    # return render_template('lists.html')
 
 
-def send_msg():
-    msg = Message("Hello",
-                  sender="from@example.com",
-                  recipients=["justindavidlee88@gmail.com"])
-    mail.send(msg)
+# def send_msg():
+#     msg = Message("Hello",
+#                   sender="from@example.com",
+#                   recipients=["justindavidlee88@gmail.com"])
+#     mail.send(msg)
 
 
 @app.route('/post/<int:id>/', methods=['GET'])
@@ -132,9 +132,9 @@ def add_view():
         return render_template('add.html')
 
 
-@app.route('/test', methods=['GET'])
-def test():
-    return User.query.all()
+# @app.route('/test', methods=['GET'])
+# def test():
+#     return User.query.all()
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -168,24 +168,24 @@ categories = db.Table('categories',
                       )
 
 
-@app.route('/registration')
-def register_view():
-    pass
+# @app.route('/registration')
+# def register_view():
+#     pass
 
 
-class User(db.Model):
+class Users(db.Model):
     """User model with primary key, username, password"""
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True)
     password = db.Column(db.String(30))
-    email = db.Column(db.String(80), unique=True)
+    # email = db.Column(db.String(80), unique=True)
     posts = db.relationship('Post', backref='user',
                             lazy='dynamic')
 
-    def __init__(self, username, password, email):
+    def __init__(self, username, password):
         self.username = username
         self.password = password
-        self.email = email
+        # self.email = email
 
     def __repr__(self):
         return '<User %r>' % self.username
@@ -201,14 +201,14 @@ class Post(db.Model):
     categories = db.relationship('Category', secondary=categories,
                                  backref=db.backref('post', lazy='dynamic'))
 
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
     def __init__(self, title, body):
         self.title = title
         self.body = body
         self.pub_date = datetime.utcnow()
-        self.user_id = User.query.\
-            filter(User.username == session['current_user']).\
+        self.user_id = Users.query.\
+            filter(Users.username == session['current_user']).\
             first().id
 
     def __repr__(self):
@@ -226,25 +226,25 @@ class Category(db.Model):
         return '<Category %r>' % self.name
 
 
-class Registration(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    key = db.Column(db.String(32), unique=True)
-    email = db.Column(db.String(40), unique=True)
-    username = db.Column(db.String(20), unique=True)
-    password = db.Column(db.String(20))
-    date = db.Column(db.DateTime)
+# class Registration(db.Model):
+#     id = db.Column(db.Integer, primary_key=True)
+#     key = db.Column(db.String(32), unique=True)
+#     email = db.Column(db.String(40), unique=True)
+#     username = db.Column(db.String(20), unique=True)
+#     password = db.Column(db.String(20))
+#     date = db.Column(db.DateTime)
 
-    def __init__(self, email, username, password):
-        #self.key = str(int(randint(10**15, 10**16-1)))
-        self.key = ''.join(random.choice(string.ascii_uppercase)
-                           for i in range(12))
-        self.date = datetime.utcnow()
-        self.email = email
-        self.username = username
-        self.password = password
+#     def __init__(self, email, username, password):
+#         #self.key = str(int(randint(10**15, 10**16-1)))
+#         self.key = ''.join(random.choice(string.ascii_uppercase)
+#                            for i in range(12))
+#         self.date = datetime.utcnow()
+#         self.email = email
+#         self.username = username
+#         self.password = password
 
-    def __repr__(self):
-        return 'REG_KEY: %r' % self.key
+#     def __repr__(self):
+#         return 'REG_KEY: %r' % self.key
 
 
 if __name__ == '__main__':
