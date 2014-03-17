@@ -7,3 +7,11 @@ In this repository, a microblog is created with Flask-SQLAlchemy extension. In t
 For the SQL-Alchemy, a postgres database table will be implemented
 
 Collaborators: [Naomi Shapiro] (https://github.com/tsnaomi/flask_microblog)
+
+##User Stories
+
+* list_view: This the root. Depending on existing posts within database, this will either display a list of posts in descening order, or an "error" message that indicates there are no posts"
+* detail_view: This page displays the post in detail, including titel, body, date and author.
+* add_view: If the user is logged in and validated, the user can submit post data with title, and body text. If not, the user is required to sign-in and submit correct username and password.
+* login: User is given a form to sign-in username and password, and will be matched accordingly to existing Author database.
+* logout: User will be logged out, and redirected to list view.
