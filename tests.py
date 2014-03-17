@@ -56,7 +56,7 @@ class TestView(unittest.TestCase):
             self.assertIn(post_list[num].title, response.data)
             self.assertIn(post_list[num].body, response.data)
             # self.assertIn(post_list[num].pub_date, response.data)
-            self.assertIn(post_list[num].author.username, response.data)
+            self.assertIn(self.username, response.data)
 
     def test_details_view_not_found(self):
         self.setup_posts()
@@ -152,15 +152,13 @@ class TestView(unittest.TestCase):
             response = client.get('/logout', follow_redirects=True)
         self.assertIn('You are logged out', response.data)
 
-    def test_add_view_post_empty_title(self):
-        # pdb.set_trace()
-        with self.app as client:
-            response = client.post("/add", data=dict(
-                title=None,
-                body="Perl Body Text"
-            ))
-        print response.data
-        # self.assertIn("Error: title and text required", response.data)
+    # def test_add_view_post_empty_title(self):
+    #     with self.app as client:
+    #         response = client.post("/add", data=dict(
+    #             title=None,
+    #             body="Perl Body Text"
+    #         ))
+    #     self.assertIn("Error: title and text required", response.data)
 
 
 class MethodTest(unittest.TestCase):
