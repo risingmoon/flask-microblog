@@ -8,17 +8,12 @@ from sqlalchemy.exc import ProgrammingError
 from datetime import datetime
 from flask.ext.script import Manager
 from flask.ext.migrate import Migrate, MigrateCommand
-import pdb
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql:///microblog"
 app.config['USERNAME'] = "author"
 app.config['PASSWORD'] = "password"
 app.config['MAIL_PORT'] = 5000
-
-# mail = Mail()
-# mail.init_app(app)
-
 
 ###DON'T FORGET TO CHANGE THIS!!!
 app.config['SECRET_KEY'] = 'blank'
@@ -48,6 +43,7 @@ def login():
         else:
             error = 'Invalid username or password'
     return render_template('login.html', error=error)
+
 
 @app.route('/logout')
 def logout():

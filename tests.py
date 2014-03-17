@@ -4,7 +4,6 @@ from microblog import (write_post, app,
                        read_posts, db, read_post)
 from microblog import Post, Author
 from sqlalchemy.exc import DataError
-import pdb
 TITLE = ['Python', 'Javascript', 'Rails', 'iOS']
 
 BODY_TEXT = ["PythonBodyText", "JavascriptBodyTest",
@@ -150,7 +149,7 @@ class TestView(unittest.TestCase):
                 username=self.username,
                 password=self.password),
                 follow_redirects=True)
-            response = client.get('/logout',follow_redirects=True)
+            response = client.get('/logout', follow_redirects=True)
         self.assertIn('You are logged out', response.data)
 
     def test_add_view_post_empty_title(self):
@@ -227,7 +226,7 @@ class MethodTest(unittest.TestCase):
             self.assertEquals(post_list[index].title, TITLE[index])
             self.assertEquals(post_list[index].body, BODY_TEXT[index])
             self.assertEquals(post_list[index].author.username,
-                                self.username)
+                              self.username)
 
     def test_read_post(self):
         self.setup_posts()
