@@ -109,7 +109,6 @@ def add_view():
                            author)
                 return redirect(url_for('list_view'))
             except ValueError:
-                print "HERE"
                 flash("Error: title and text required")
         else:
             return render_template('add.html')
