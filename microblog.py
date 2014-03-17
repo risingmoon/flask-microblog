@@ -31,10 +31,11 @@ manager = Manager(app)
 manager.add_command('db', MigrateCommand)
 
 
-def write_post(title, text, categories=None):
+def write_post(title, text, author):
     """Writes post record if title and text exists, or returns Error"""
     if title and text:
         post = Post(title, text)
+        post.author = author
         db.session.add(post)
         db.session.commit()
     else:
@@ -64,7 +65,7 @@ def list_view():
         return render_template('lists.html')
 
 
-@app.route('/post/<int:id>/', methods=['GET'])
+@app.route('/post/<int:id>', methods=['GET'])
 def details_view(id):
     """Retrieves existing data """
     try:
@@ -78,10 +79,10 @@ def add_view():
     """Sends a form if method is GET and writes post if method is POST"""
     if request.method == "POST":
         try:
+            author = Author.query.first()
             write_post(request.form['title'],
-                       # request.form['body'])
                        request.form['body'],
-                       request.form['categories'])
+                       author)
             return redirect(url_for('list_view'))
         except Exception as e:
             print e
@@ -90,12 +91,27 @@ def add_view():
         return render_template('add.html')
 
 
+class Author(db.Model):
+    """Author model with primary key, username, password"""
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True)
+    posts = db.relationship('Post', backref='author',
+                            lazy='dynamic')
+
+    def __init__(self, username):
+        self.username = username
+
+    def __repr__(self):
+        return '<Author %r>' % self.username
+
+
 class Post(db.Model):
     """Post model with title, body, publication date, and user id"""
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(80))
     body = db.Column(db.Text)
     pub_date = db.Column(db.DateTime)
+    user_id = db.Column(db.Integer, db.ForeignKey('author.id'))
 
     def __init__(self, title, body):
         self.title = title
@@ -106,4 +122,13 @@ class Post(db.Model):
         return '<Post %r>' % self.title
 
 if __name__ == '__main__':
-    manager.run()
+    # manager.run()
+    try:
+        # db.drop_all()
+        # author = Author('author')
+        # db.session.add(author)
+        # db.session.commit()
+        manager.run()
+    finally:
+        db.session.remove()
+        db.drop_all()
