@@ -1,16 +1,18 @@
 from flask import (Flask,
                    render_template,
                    request, redirect,
-                   url_for, abort)
+                   url_for, abort,
+                   flash, session)
 from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import ProgrammingError
 from datetime import datetime
 from flask.ext.script import Manager
 from flask.ext.migrate import Migrate, MigrateCommand
+import pdb
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql:///microblog"
-app.config['USERNAME'] = "username"
+app.config['USERNAME'] = "author"
 app.config['PASSWORD'] = "password"
 app.config['MAIL_PORT'] = 5000
 
@@ -29,6 +31,30 @@ migrate = Migrate(app, db)
 
 manager = Manager(app)
 manager.add_command('db', MigrateCommand)
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Receives response and matches username and password"""
+    error = None
+    if request.method == 'POST':
+        author = Author.query.filter(
+            Author.username == request.form['username']).first()
+        if author and request.form['password'] == author.password:
+            session['logged_in'] = True
+            session['current_user'] = request.form['username']
+            flash('You are logged in')
+            return redirect(url_for('list_view'))
+        else:
+            error = 'Invalid username or password'
+    return render_template('login.html', error=error)
+
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    session.pop('current_user', None)
+    flash('You are logged out')
+    return redirect(url_for('list_view'))
 
 
 def write_post(title, text, author):
@@ -77,29 +103,36 @@ def details_view(id):
 @app.route('/add', methods=['GET', 'POST'])
 def add_view():
     """Sends a form if method is GET and writes post if method is POST"""
-    if request.method == "POST":
-        try:
-            author = Author.query.first()
-            write_post(request.form['title'],
-                       request.form['body'],
-                       author)
-            return redirect(url_for('list_view'))
-        except Exception as e:
-            print e
-            return redirect(url_for('list_view'))
+    if 'logged_in'in session and session['logged_in']:
+        if request.method == "POST":
+            try:
+                author = Author.query.filter(
+                    Author.username == session['current_user']).first()
+                write_post(request.form['title'],
+                           request.form['body'],
+                           author)
+                return redirect(url_for('list_view'))
+            except ValueError:
+                print "HERE"
+                flash("Error: title and text required")
+        else:
+            return render_template('add.html')
     else:
-        return render_template('add.html')
+        error = "You are not logged in"
+        return render_template('login.html', error=error)
 
 
 class Author(db.Model):
     """Author model with primary key, username, password"""
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True)
+    password = db.Column(db.String(80))
     posts = db.relationship('Post', backref='author',
                             lazy='dynamic')
 
-    def __init__(self, username):
+    def __init__(self, username, password):
         self.username = username
+        self.password = password
 
     def __repr__(self):
         return '<Author %r>' % self.username
