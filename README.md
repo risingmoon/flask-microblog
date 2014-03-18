@@ -6,7 +6,7 @@ In this repository, a microblog is created with Flask-SQLAlchemy extension. In t
 
 For the SQL-Alchemy, a postgres database table will be implemented
 
-Collaborators: [Naomi Shapiro] (https://github.com/tsnaomi/flask_microblog)
+Collaborators: [Naomi Shapiro](https://github.com/tsnaomi/flask_microblog)
 
 ##User Stories
 

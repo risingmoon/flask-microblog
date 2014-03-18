@@ -8,6 +8,7 @@
         <dt>Text:
         <dd><textarea name=body rows=5 cols=40></textarea>
         <dd><input type=submit value=Post>
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
       </dl>
     </form>
 {% endblock %}
