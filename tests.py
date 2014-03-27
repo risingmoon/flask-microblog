@@ -1,9 +1,10 @@
 import unittest
-# import pdb
+import pdb
 from microblog import db, app, session
 from microblog import (write_post, read_posts, read_post, register)
 from microblog import Post, Author, Registration
-from sqlalchemy.exc import DataError
+from sqlalchemy.exc import DataError, IntegrityError
+from sqlalchemy.sql.expression import desc
 TITLE = ['Python', 'Javascript', 'Rails', 'iOS']
 
 BODY_TEXT = ["PythonBodyText", "JavascriptBodyTest",
@@ -21,6 +22,17 @@ class TestView(unittest.TestCase):
         self.username = 'author'
         self.password = 'password'
         author = Author(self.email, self.username, self.password)
+        
+        self.db.session.add(Registration(
+            'person1@example.com',
+            'username1',
+            'password1'))
+
+        self.db.session.add(Registration(
+            'person2@example.com',
+            'username2',
+            'password2'))
+
         self.db.session.add(author)
         self.db.session.commit()
 
@@ -38,43 +50,29 @@ class TestView(unittest.TestCase):
         for num in range(4):
             write_post(TITLE[num], BODY_TEXT[num], author)
 
-    def test_registration_get(self):
+    def test_registration_correct(self):
         with self.app as client:
-            response = client.get('/register')
-        form_text = """<dt>Email:
-      <dd><input type=text name=email>
-      <dt>Username:
-      <dd><input type=text name=username>
-      <dt>Password:
-      <dd><input type=password name=password>
-      <dd><input type=submit value=Register>"""
-        self.assertIn(form_text, response.data)
+            client.get('/register')
+            client.post('/register', data=dict(
+                email=self.registrant['email'],
+                username=self.registrant['username'],
+                password=self.registrant['password'],
+                _csrf_token=session.get('_csrf_token'),
+                follow_redirects=True))
+        registered = Registration.query.filter_by(
+            email=self.registrant['email']).first()
+        self.assertEqual(registered.email, self.registrant['email'])
 
-    # def test_registration_correct(self):
-    #     with app.test_request_context():
-    #         client.get('/register')
-    #         response = client.post('/register', data=dict(
-    #             email=self.registrant.get('email'),
-    #             username=self.registrant.get('username'),
-    #             password=self.registrant.get('password'),
-    #             _csrf_token=session.get('_csrf_token'),
-    #             follow_redirects=True)
-    #         with mail.record_messages() as outbox:
+    # def test_registration_post_used_email(self):
+    #     pass
 
-        
-    def test_registration_post_empty_email(self):
-        pass
+    # def test_registration_post_used_username(self):
+    #     pass
 
-    def test_registration_post_empty_username(self):
-        pass
-
-    def test_registration_post_empty_password(self):
-        pass
-
-    def test_list_view_empty(self):
+    def test_post_view_empty(self):
         with self.app as client:
             response = client.get("/")
-        msg = "Inconcievable.  No entries here so far"
+        msg = "No entries here so far"
         self.assertIn(msg, response.data)
 
     def test_list_view_filled(self):
@@ -115,51 +113,43 @@ class TestView(unittest.TestCase):
 
     def test_add_view_post_logged_in(self):
         self.setup_posts()
+        title = "Perl"
+        body = "Perl Body Text"
         with self.app as client:
             client.get('/login')
+            # pdb.set_trace()
             client.post('/login', data=dict(
                 username=self.username,
                 password=self.password,
-                _csrf_token=session['_csrf_token']),
+                _csrf_token=session.get('_csrf_token')),
                 follow_redirects=True)
-            response = client.post("/add", data=dict(
-                title="Perl",
-                body="Perl Body Text",
-                _csrf_token=session['_csrf_token']),
+            client.post("/add", data=dict(
+                title=title,
+                body=body,
+                _csrf_token=session.get('_csrf_token')),
                 follow_redirects=True)
+            current_user = session.get('current_user')
+        #Check user logged in
+        self.assertTrue(current_user)
         #Check Latest Post
-        latest = Post.query.order_by(Post.pub_date.desc()).first()
-        self.assertIn(latest.title, response.data)
-        #Check all posts
-        post_list = Post.query.all()
-        for num in range(5):
-            self.assertIn(post_list[num].title, response.data)
+        latest = Post.query.order_by(desc(Post.pub_date)).first()
+        self.assertEqual(latest.title, title)
+        self.assertEqual(latest.body, body)
 
     def test_add_view_post_not_logged_in(self):
         self.setup_posts()
         with self.app as client:
             client.get('/login')
-            response = client.post("/add", data=dict(
+            client.post("/add", data=dict(
                 title="Perl",
                 body="Perl Body Text",
-                _csrf_token=session['_csrf_token']),
+                _csrf_token=session.get('_csrf_token')),
                 follow_redirects=True)
-        self.assertIn("You are not logged in", response.data)
-
-    def test_add_view_post_empty_title(self):
-        with self.app as client:
-            client.get('/login')
-            response = client.post('/login', data=dict(
-                username=self.username,
-                password=self.password,
-                _csrf_token=session['_csrf_token']),
-                follow_redirects=True)
-            response = client.post("/add", data=dict(
-                title=None,
-                body="Perl Body Text",
-                _csrf_token=session['_csrf_token']),
-                follow_redirects=True)
-        self.assertIn("Error: title is required", response.data)
+            current_user = session.get('current_user')
+        self.assertFalse(current_user)
+        posts = Post.query.filter_by(title="Perl").all()
+        #Post does not contain posting
+        self.assertFalse(posts)
 
     def test_login_get(self):
         with self.app as client:
@@ -174,68 +164,62 @@ class TestView(unittest.TestCase):
     def test_login_correct(self):
         with self.app as client:
             client.get('/login')
-            response = client.post('/login', data=dict(
+            client.post('/login', data=dict(
                 username=self.username,
                 password=self.password,
-                _csrf_token=session['_csrf_token']),
+                _csrf_token=session.get('_csrf_token')),
                 follow_redirects=True)
-        self.assertIn("You are logged in", response.data)
+            self.assertTrue(session.get('current_user'))
 
     def test_login_incorrect_username(self):
         with self.app as client:
             client.get('/login')
-            response = client.post('/login', data=dict(
+            client.post('/login', data=dict(
                 username='wrong',
                 password=self.password,
-                _csrf_token=session['_csrf_token']))
-        self.assertIn("Incorrect username or password",
-                      response.data)
+                _csrf_token=session.get('_csrf_token')))
+            current_user = session.get('current_user')
+        self.assertFalse(current_user)
 
     def test_login_incorrect_password(self):
         with self.app as client:
             client.get('/login')
-            response = client.post('/login', data=dict(
+            client.post('/login', data=dict(
                 username=self.username,
                 password='wrong',
-                _csrf_token=session['_csrf_token']))
-        self.assertIn("Invalid password", response.data)
+                _csrf_token=session.get('_csrf_token')))
+            current_user = session.get('current_user')
+        self.assertFalse(current_user)
 
     def test_login_empty(self):
         with self.app as client:
             client.get('/login')
-            response = client.post('/login', data=dict(
-                _csrf_token=session['_csrf_token']))
-        self.assertIn("Please provide a username and password", response.data)
-
-    def test_login_post_no_record(self):
-        with self.app as client:
-            client.get('/login')
-            response = client.post('/login', data=dict(
-                username=self.registrant['username'],
-                password=self.registrant['password'],
-                _csrf_token=session['_csrf_token']),
-                follow_redirects=True)
-        self.assertIn("Incorrect username or password",
-                      response.data)
+            client.post('/login', data=dict(
+                _csrf_token=session.get('_csrf_token')))
+            current_user = session.get('current_user')
+        self.assertFalse(current_user)
 
     def test_login_post_forbidden(self):
         #Forbidden access directly from post
         with self.app as client:
             client.get('/login')
-            response = client.post('/login', data=dict(
-                username=self.username,
-                password=self.password),
-                follow_redirects=True)
-        self.assertIn("Forbidden", response.data)
-
-    def test_logout(self):
-        with self.app as client:
             client.post('/login', data=dict(
                 username=self.username,
                 password=self.password),
                 follow_redirects=True)
-            response = client.get('/logout', follow_redirects=True)
-        self.assertIn('You are logged out', response.data)
+            self.assertIsNotNone(session.get('current_user'))
+
+    def test_logout(self):
+        with self.app as client:
+            client.get('/login')
+            client.post('/login', data=dict(
+                username=self.username,
+                password=self.password,
+                _csrf_token=session.get('_csrf_token')),
+                follow_redirects=True)
+            self.assertTrue(session.get('current_user'))
+            client.get('/logout', follow_redirects=True)
+            self.assertIsNone(session.get('current_user'))
 
 
 class MethodTest(unittest.TestCase):
@@ -253,6 +237,17 @@ class MethodTest(unittest.TestCase):
             'password': 'nothing'}
         author = Author(self.email, self.username, self.password)
         self.db.session.add(author)
+
+        self.db.session.add(Registration(
+            'person1@example.com',
+            'username1',
+            'password1'))
+
+        self.db.session.add(Registration(
+            'person2@example.com',
+            'username2',
+            'password2'))
+
         self.db.session.commit()
 
     def tearDown(self):
@@ -275,23 +270,17 @@ class MethodTest(unittest.TestCase):
         self.assertEquals(registrant.password, self.registrant['password'])
         self.assertTrue(registrant.key)
 
-    def test_register_empty_email(self):
-        with self.assertRaises(ValueError):
-            register(None,
+    def test_registered_used_email(self):
+        with self.assertRaises(IntegrityError):
+            register('person1@example.com',
                      self.registrant['username'],
                      self.registrant['password'])
 
-    def test_register_empty_username(self):
-        with self.assertRaises(ValueError):
+    def test_registered_used_username(self):
+        with self.assertRaises(IntegrityError):
             register(self.registrant['email'],
-                     None,
+                     'username1',
                      self.registrant['password'])
-
-    def test_register_empty_password(self):
-        with self.assertRaises(ValueError):
-            register(self.registrant['email'],
-                     self.registrant['username'],
-                     None)
 
     def test_empty_database(self):
         self.assertEquals(len(Post.query.all()), 0)

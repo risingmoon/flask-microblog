@@ -1,8 +1,20 @@
 {% extends "layout.html" %}
 {% block body %}
-  <h2>Login</h2>
   {% if error %}<p class=error><strong>Error:</strong> {{ error }}{% endif %}
-  <form action="{{ url_for('registration_view') }}" method=post>
+  <form action="{{ url_for('registration_view') }}" role="form" method=post>
+        <h2 class="form-signin-heading">Please fill out</h2>
+        <input type="email" name=email class="form-control" placeholder="Email address" required autofocus>
+        <input type="text" name=username class="form-control" placeholder="Username" required>
+        <input type="password" name=password class="form-control" placeholder="Password" required>
+        <input type="password" name=password-again class="form-control" placeholder="Password Again" required>
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Register</button>
+  </form>
+
+
+
+
+  <!--form action="{{ url_for('registration_view') }}" method=post>
     <dl>
       <dt>Email:
       <dd><input type=text name=email>
@@ -13,5 +25,5 @@
       <dd><input type=submit value=Register>
       <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
     </dl>
-  </form>
+  </form-->
 {% endblock %}

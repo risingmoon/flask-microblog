@@ -13,7 +13,7 @@ from flask_mail import Mail, Message
 from random import choice
 from flask.ext.seasurf import SeaSurf
 import string
-# import pdb
+import pdb
 
 app = Flask(__name__)
 app.config.from_pyfile('config/config.cfg')
@@ -88,11 +88,13 @@ class Registration(db.Model):
         self.password = password
 
     def __repr__(self):
-        return 'REG_KEY: %r' % self.key
+        return 'Registrant: %r' % self.username
 
 
 def register(email, username, password):
     missing = []
+    # registered = Registration.query.all()
+    # pdb.set_trace()
     if not email:
         missing.append(" email")
     if not username:
@@ -152,13 +154,14 @@ def registration_view():
 
     if request.method == 'POST':
         try:
+            
             register(request.form.get('email'),
                      request.form.get('username'),
                      request.form.get('password'))
             send_mail(request.form.get('username'),
                       request.form.get('email'))
             flash('A confirmation mail has been sent to your email')
-            return redirect(url_for('list_view'))
+            return redirect(url_for('posts_view'))
         except ValueError as e:
             error = e
     return render_template('register.html', error=error)
@@ -182,13 +185,13 @@ def confirm_view(key):
 
 
 @app.route('/', methods=['GET'])
-def list_view():
+def posts_view():
     """Sends a response of all existing posts"""
     try:
         post_list = read_posts()
-        return render_template('lists.html', posts=post_list)
+        return render_template('posts.html', posts=post_list)
     except ProgrammingError:
-        return render_template('lists.html')
+        return render_template('posts.html')
 
 
 @app.route('/post/<int:id>', methods=['GET'])
@@ -210,7 +213,7 @@ def add_view():
                     username=session['current_user']).first()
                 write_post(request.form.get('title'), request.form.get('body'),
                            author)
-                return redirect(url_for('list_view'))
+                return redirect(url_for('posts_view'))
             except ValueError:
                 flash("Error: title is required")
                 return render_template('add.html')
@@ -234,7 +237,7 @@ def login():
                         and request.form['password'] == author.password:
                     session['current_user'] = request.form['username']
                     flash('You are logged in')
-                    return redirect(url_for('list_view'))
+                    return redirect(url_for('posts_view'))
                 else:
                     error = 'Invalid password'
             else:
@@ -249,7 +252,7 @@ def logout():
     session.pop('logged_in', None)
     session.pop('current_user', None)
     flash('You are logged out')
-    return redirect(url_for('list_view'))
+    return redirect(url_for('posts_view'))
 
 
 if __name__ == '__main__':

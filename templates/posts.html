@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% block body %}
+{% for post in posts %}
+  <div class="blog-post">
+    <h2 class="blog-post-title">{{ post.title}}</h2>
+    <p class="blog-post-meta">{{ post.pub_date }} by <a href="#">{{ post.author.username }}</a></p>
+    <p>{{ post.body }}</p>
+  </div><!-- /.blog-post -->
+{% else %}
+  <div class="blog-post">
+    <h2 class="blog-post-title"><em>Inconcievable</em></h2>
+    <p>No entries here so far</p>
+  </div><!-- /.blog-post -->
+{% endfor %}
+{% endblock %}
