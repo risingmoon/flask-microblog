@@ -1,5 +1,7 @@
 *.py[cod]
-/migrations
+migrations/
+config/
+STATIC/
 # C extensions
 *.so
 

@@ -16,17 +16,7 @@ import string
 # import pdb
 
 app = Flask(__name__)
-app.config.from_pyfile('config.py')
-app.config.update(
-    DEBUG=True,
-    # EMAIL SETTINGS
-    MAIL_SERVER='smtp.gmail.com',
-    MAIL_PORT=465,
-    MAIL_USE_SSL=True,
-    MAIL_USERNAME='',  # FILL OUT
-    MAIL_PASSWORD='',  # FILL OUT
-    MAIL_DEFAULT_SENDER=("Microblog", '')
-)
+app.config.from_pyfile('config/config.cfg')
 
 ###DON'T FORGET TO CHANGE THIS!!!
 app.debug = True
@@ -79,6 +69,7 @@ class Post(db.Model):
 
 
 class Registration(db.Model):
+    """Registration model with email, username, password, and date"""
     id = db.Column(db.Integer, primary_key=True)
     key = db.Column(db.String(32), unique=True)
     email = db.Column(db.String(40), unique=True)
@@ -247,7 +238,7 @@ def login():
                 else:
                     error = 'Invalid password'
             else:
-                error = 'We do not have this username in our records'
+                error = 'Incorrect username or password'
         else:
             error = "Please provide a username and password"
     return render_template('login.html', error=error)
@@ -262,6 +253,4 @@ def logout():
 
 
 if __name__ == '__main__':
-    # db.create_all()
-    # app.run()
     manager.run()
