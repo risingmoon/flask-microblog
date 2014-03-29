@@ -1,37 +1,42 @@
 import unittest
-import pdb
 from microblog import db, app, session
-from microblog import (write_post, read_posts, read_post, register)
+from microblog import (
+    write_post, read_posts, read_post,
+    register, generate_key)
 from microblog import Post, Author, Registration
-from sqlalchemy.exc import DataError, IntegrityError
-from sqlalchemy.sql.expression import desc
+from sqlalchemy.exc import DataError
 TITLE = ['Python', 'Javascript', 'Rails', 'iOS']
 
 BODY_TEXT = ["PythonBodyText", "JavascriptBodyTest",
              "RailsBodyText", "iOSBodyText"]
 
 
-class TestView(unittest.TestCase):
+class BasicTest(unittest.TestCase):
 
     def setUp(self):
         self.db = db
-        self.db.drop_all()
         self.db.create_all()
         self.app = app.test_client()
+        self.config = app.config.update(TESTING=True)
         self.email = 'admin@example.com'
         self.username = 'author'
         self.password = 'password'
         author = Author(self.email, self.username, self.password)
-        
-        self.db.session.add(Registration(
+
+        r1 = Registration(
             'person1@example.com',
             'username1',
-            'password1'))
+            'password1')
+        generate_key(r1)
+        self.db.session.add(r1)
 
-        self.db.session.add(Registration(
+        r2 = Registration(
             'person2@example.com',
             'username2',
-            'password2'))
+            'password2')
+
+        generate_key(r2)
+        self.db.session.add(r2)
 
         self.db.session.add(author)
         self.db.session.commit()
@@ -45,29 +50,79 @@ class TestView(unittest.TestCase):
         self.db.session.remove()
         self.db.drop_all()
 
+
+class TestView(BasicTest):
+
     def setup_posts(self):
         author = Author.query.first()
         for num in range(4):
             write_post(TITLE[num], BODY_TEXT[num], author)
 
-    def test_registration_correct(self):
+    #Works when TESTING=True
+    # def test_registration_correct(self):
+    #     with self.app as client:
+    #         client.get('/register')
+    #         client.post('/register', data=dict(
+    #             email=self.registrant['email'],
+    #             username=self.registrant['username'],
+    #             password=self.registrant['password'],
+    #             _csrf_token=session.get('_csrf_token'),
+    #             follow_redirects=True))
+    #     registered = Registration.query.filter_by(
+    #         email=self.registrant['email']).first()
+    #     self.assertEqual(registered.email, self.registrant['email'])
+
+    def test_registration_post_registered_email(self):
         with self.app as client:
             client.get('/register')
             client.post('/register', data=dict(
-                email=self.registrant['email'],
+                email='person1@example.com',
                 username=self.registrant['username'],
                 password=self.registrant['password'],
                 _csrf_token=session.get('_csrf_token'),
                 follow_redirects=True))
         registered = Registration.query.filter_by(
+            username=self.registrant['username']).first()
+        self.assertIsNone(registered)
+
+    def test_registration_post_registered_username(self):
+        with self.app as client:
+            client.get('/register')
+            client.post('/register', data=dict(
+                email=self.registrant['email'],
+                username='username1',
+                password=self.registrant['password'],
+                _csrf_token=session.get('_csrf_token'),
+                follow_redirects=True))
+        registered = Registration.query.filter_by(
             email=self.registrant['email']).first()
-        self.assertEqual(registered.email, self.registrant['email'])
+        self.assertIsNone(registered)
 
-    # def test_registration_post_used_email(self):
-    #     pass
+    def test_registration_post_author_email(self):
+        with self.app as client:
+            client.get('/register')
+            client.post('/register', data=dict(
+                email='admin@example.com',
+                username=self.registrant['username'],
+                password=self.registrant['password'],
+                _csrf_token=session.get('_csrf_token'),
+                follow_redirects=True))
+        registered = Registration.query.filter_by(
+            username=self.registrant['username']).first()
+        self.assertIsNone(registered)
 
-    # def test_registration_post_used_username(self):
-    #     pass
+    def test_registration_post_author_username(self):
+        with self.app as client:
+            client.get('/register')
+            client.post('/register', data=dict(
+                email=self.registrant['email'],
+                username='author',
+                password=self.registrant['password'],
+                _csrf_token=session.get('_csrf_token'),
+                follow_redirects=True))
+        registered = Registration.query.filter_by(
+            email=self.registrant['email']).first()
+        self.assertIsNone(registered)
 
     def test_post_view_empty(self):
         with self.app as client:
@@ -132,7 +187,7 @@ class TestView(unittest.TestCase):
         #Check user logged in
         self.assertTrue(current_user)
         #Check Latest Post
-        latest = Post.query.order_by(desc(Post.pub_date)).first()
+        latest = Post.query.order_by(Post.pub_date.desc()).first()
         self.assertEqual(latest.title, title)
         self.assertEqual(latest.body, body)
 
@@ -199,15 +254,15 @@ class TestView(unittest.TestCase):
             current_user = session.get('current_user')
         self.assertFalse(current_user)
 
+    #When TESTING=True, this stops working
     def test_login_post_forbidden(self):
-        #Forbidden access directly from post
         with self.app as client:
             client.get('/login')
             client.post('/login', data=dict(
                 username=self.username,
                 password=self.password),
                 follow_redirects=True)
-            self.assertIsNotNone(session.get('current_user'))
+            self.assertIsNone(session.get('current_user'))
 
     def test_logout(self):
         with self.app as client:
@@ -222,37 +277,7 @@ class TestView(unittest.TestCase):
             self.assertIsNone(session.get('current_user'))
 
 
-class MethodTest(unittest.TestCase):
-
-    def setUp(self):
-        self.db = db
-        self.db.drop_all()
-        self.db.create_all()
-        self.email = 'admin@example.com'
-        self.username = 'author'
-        self.password = 'password'
-        self.registrant = {
-            'email': 'justindavidlee@gmail.com',
-            'username': 'risingmoon',
-            'password': 'nothing'}
-        author = Author(self.email, self.username, self.password)
-        self.db.session.add(author)
-
-        self.db.session.add(Registration(
-            'person1@example.com',
-            'username1',
-            'password1'))
-
-        self.db.session.add(Registration(
-            'person2@example.com',
-            'username2',
-            'password2'))
-
-        self.db.session.commit()
-
-    def tearDown(self):
-        self.db.session.remove()
-        self.db.drop_all()
+class MethodTest(BasicTest):
 
     def setup_posts(self):
         author = Author.query.first()
@@ -270,14 +295,26 @@ class MethodTest(unittest.TestCase):
         self.assertEquals(registrant.password, self.registrant['password'])
         self.assertTrue(registrant.key)
 
-    def test_registered_used_email(self):
-        with self.assertRaises(IntegrityError):
+    def test_registered_registration_email(self):
+        with self.assertRaises(ValueError):
             register('person1@example.com',
                      self.registrant['username'],
                      self.registrant['password'])
 
-    def test_registered_used_username(self):
-        with self.assertRaises(IntegrityError):
+    def test_registered_registration_username(self):
+        with self.assertRaises(ValueError):
+            register(self.registrant['email'],
+                     'username1',
+                     self.registrant['password'])
+
+    def test_registered_author_email(self):
+        with self.assertRaises(ValueError):
+            register("admin@example.com",
+                     self.registrant['username'],
+                     self.registrant['password'])
+
+    def test_registered_author_username(self):
+        with self.assertRaises(ValueError):
             register(self.registrant['email'],
                      'username1',
                      self.registrant['password'])

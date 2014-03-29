@@ -13,7 +13,8 @@ from flask_mail import Mail, Message
 from random import choice
 from flask.ext.seasurf import SeaSurf
 import string
-import pdb
+from sqlalchemy import or_
+# import pdb
 
 app = Flask(__name__)
 app.config.from_pyfile('config/config.cfg')
@@ -78,10 +79,6 @@ class Registration(db.Model):
     date = db.Column(db.DateTime)
 
     def __init__(self, email, username, password):
-        self.key = ''.join(
-            choice(
-                string.ascii_letters + string.digits) for i in range(12)
-        )
         self.date = datetime.utcnow()
         self.email = email
         self.username = username
@@ -92,22 +89,46 @@ class Registration(db.Model):
 
 
 def register(email, username, password):
-    missing = []
-    # registered = Registration.query.all()
-    # pdb.set_trace()
-    if not email:
-        missing.append(" email")
-    if not username:
-        missing.append(" username")
-    if not password:
-        missing.append(" password")
-    if email and username and password:
+    """Registers a person if email or username not in Registration or Author"""
+    messages = []
+    existed = Registration.query.filter(
+        or_(
+            Registration.username == username,
+            Registration.email == email)
+    ).all()
+    existed.extend(Author.query.filter(
+        or_(
+            Author.username == username,
+            Author.email == email)
+    ).all())
+    if email in [r.email for r in existed]:
+            messages.append("This email has been used")
+    if username in [r.username for r in existed]:
+            messages.append("This username has been used")
+    if not messages:
         registrant = Registration(email, username, password)
+        generate_key(registrant)
         db.session.add(registrant)
         db.session.commit()
     else:
-        msg = ','.join(missing)
-        raise ValueError("The" + msg + "cannot be empty")
+        raise ValueError("\n".join(messages))
+
+
+def generate_key(registrant):
+    """Generates unique regisration key for registrant"""
+    registered = Registration.query.all()
+    reg_key = ''.join(
+        choice(
+            string.ascii_letters + string.digits) for i in range(32)
+    )
+    if registered:
+        reg_keys = [r.key for r in registered]
+        while reg_key in reg_keys:
+            reg_key = ''.join(
+                choice(
+                    string.ascii_letters + string.digits) for i in range(32)
+            )
+    registrant.key = reg_key
 
 
 def write_post(title, text, author):
@@ -151,10 +172,8 @@ def send_mail(username, email):
 @app.route('/register', methods=['POST', 'GET'])
 def registration_view():
     error = None
-
     if request.method == 'POST':
         try:
-            
             register(request.form.get('email'),
                      request.form.get('username'),
                      request.form.get('password'))
@@ -169,6 +188,7 @@ def registration_view():
 
 @app.route('/confirm/<key>')
 def confirm_view(key):
+    """Confirms registrant registration key adds to Author"""
     registrant = Registration.query.filter_by(key=key).first()
     if registrant:
         author = Author(
@@ -178,7 +198,7 @@ def confirm_view(key):
         db.session.add(author)
         db.session.commit()
         db.session.delete(registrant)
-        flash('Affirmative. Please login.')
+        flash('You are now registered. Please login.')
         return redirect(url_for('login'))
     else:
         abort(403)
