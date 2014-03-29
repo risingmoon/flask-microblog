@@ -14,14 +14,14 @@ from random import choice
 from flask.ext.seasurf import SeaSurf
 import string
 from sqlalchemy import or_
-# import pdb
+import pdb
 
 app = Flask(__name__)
 # app.config.from_pyfile('config/config.cfg')
 app.config.from_pyfile('test_config.cfg')
 
 ###DON'T FORGET TO CHANGE THIS!!!
-app.debug = True
+# app.debug = True
 
 db = SQLAlchemy(app)
 
@@ -103,16 +103,16 @@ def register(email, username, password):
             Author.email == email)
     ).all())
     if email in [r.email for r in existed]:
-            messages.append("This email has been used")
+            messages.append("email")
     if username in [r.username for r in existed]:
-            messages.append("This username has been used")
+            messages.append("username")
     if not messages:
         registrant = Registration(email, username, password)
         generate_key(registrant)
         db.session.add(registrant)
         db.session.commit()
     else:
-        raise ValueError("\n".join(messages))
+        raise ValueError("This " + ", ".join(messages) + " has been used")
 
 
 def generate_key(registrant):
@@ -157,7 +157,16 @@ def read_post(id):
         raise KeyError("Error: Post not found")
 
 
-def send_mail(username, email):
+# def delete_post(id, username):
+#     post = Post.query.filter(Post.id == id, Post.username == username).first()
+#     if post:
+#         db.session.delete(post)
+#         db.session.commit()
+#     else:
+#         raise KeyError("Error: Post not found")
+
+
+def send_confirm_mail(username, email):
     msg = Message(
         subject="Registration Confirmation",
         body="""Please click on the link to confirm account:
@@ -165,25 +174,75 @@ def send_mail(username, email):
         url_for("confirm_view",
                 key=Registration.query.filter_by(
                     username=username
-                ).first().key)),
+                ).first().key, _external=True)),
         recipients=[email])
     mail.send(msg)
+
+
+#Needs more security
+# def send_forgot_mail(email, username, password):
+#     msg = Message(
+#         subject="Username and Password",
+#         body="Username: %s\nPassword: %s" % (username, password),
+#         recipients=[email])
+#     mail.send(msg)
+
+# @app.route('/delete/<int:id>', methods=['GET'])
+# def delete_view(id):
+#     """Retrieves existing data """
+#     if 'current_user'in session:
+#         if request.method == "POST":
+#             try:
+#                 delete_post(id, session['current_user'])
+#                 return redirect(url_for('posts_view'))
+#             except KeyError:
+#                 flash("Error: Post not found")
+#                 return redirect(url_for('posts_view'))
+#         else:
+#             return render_template('add.html')
+#     else:
+#         error = "You are not logged in"
+#         return render_template('login.html', error=error)
+#     try:
+#         return render_template('details.html', post=read_post(id))
+#     except KeyError:
+#         abort(404)
+
+
+# @app.route('/forgot', methods=['POST', 'GET'])
+# def forgot_view():
+#     error = None
+#     if request.method == 'POST':
+#         author = Author.query.filter_by(
+#             Author.email == request.form.get('email')).first()
+#         if author:
+#             send_forgot_mail(
+#                 author.email, author.username, author.password)
+#             flash('A confirmation mail has been sent to your email')
+#             return redirect(url_for('login'))
+#         else:
+#             error = "Email does not exist, please register"
+#     return render_template('register.html', error=error)
 
 
 @app.route('/register', methods=['POST', 'GET'])
 def registration_view():
     error = None
     if request.method == 'POST':
-        try:
-            register(request.form.get('email'),
-                     request.form.get('username'),
-                     request.form.get('password'))
-            send_mail(request.form.get('username'),
-                      request.form.get('email'))
-            flash('A confirmation mail has been sent to your email')
-            return redirect(url_for('posts_view'))
-        except ValueError as e:
-            error = e
+        if request.form.get('password') == request.form.get('password-again'):
+            try:
+                register(request.form.get('email'),
+                         request.form.get('username'),
+                         request.form.get('password'))
+                send_confirm_mail(
+                    request.form.get('username'),
+                    request.form.get('email'))
+                flash('A confirmation mail has been sent to your email')
+                return redirect(url_for('posts_view'))
+            except ValueError as e:
+                error = e
+        else:
+            error = "Your passwords don't match"
     return render_template('register.html', error=error)
 
 
@@ -197,8 +256,8 @@ def confirm_view(key):
             registrant.username,
             registrant.password)
         db.session.add(author)
-        db.session.commit()
         db.session.delete(registrant)
+        db.session.commit()
         flash('You are now registered. Please login.')
         return redirect(url_for('login'))
     else:

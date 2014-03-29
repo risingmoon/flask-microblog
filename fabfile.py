@@ -78,9 +78,11 @@ def config_nginx():
     run_command_on_selected_server(_config_nginx)
     run_command_on_selected_server(_restart_nginx)
 
-def config_psql():
-    run_command_on_selected_server(_config_psql)
-    run_command_on_selected_server(_restart_psql)
+
+# def config_psql():
+#     run_command_on_selected_server(_config_psql)
+#     run_command_on_selected_server(_restart_psql)
+
 
 def sync_instance():
     """Runs rsync_project which synchronises home directory to
@@ -89,16 +91,16 @@ def sync_instance():
 
 
 def _pip_install():
-    sudo('pip install -r requirements.txt')
+    sudo('pip install -r config/requirements.txt')
 
 
 def _pip_uninstall():
-    sudo('pip uninstall -r requirements.txt')
+    sudo('pip uninstall -r config/requirements.txt')
 
 
 def _install_packages():
     command_text = """
-    filename="packages.txt"
+    filename="config/packages.txt"
     packages="";
     while read -r package;
     do echo "here $package";
@@ -112,7 +114,7 @@ def _install_packages():
 
 def _uninstall_packages():
     command_text = """
-    filename="packages.txt"
+    filename="config/packages.txt"
     packages="";
     while read -r package;
     do echo "here $package";
@@ -132,7 +134,7 @@ def _restart_supervisor():
 
 def _config_supervisor():
     default_file = '/etc/supervisor/conf.d/app.conf'
-    config_file = 'app.conf'
+    config_file = 'config/app.conf'
     if exists(config_file):
         sudo(' '.join(['cp', config_file, default_file]))
     else:
@@ -147,7 +149,7 @@ def _config_nginx():
     server_name = 'http://' + env.active_instance.public_dns_name + '/;'
     default_file = '/etc/nginx/sites-available/default'
     default_orig_file = '/etc/nginx/sites-available/default.orig'
-    config_file = 'simple_nginx_config'
+    config_file = 'config/simple_nginx_config'
     if not exists(default_orig_file):
         sudo(' '.join(['mv', default_file, default_orig_file]))
     if exists(config_file):
