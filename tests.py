@@ -292,8 +292,7 @@ class TestView(BasicTest):
         with self.app as client:
             client.post("/add", data=dict(
                 title="Perl",
-                body="Perl Body Text",
-                _csrf_token=session.get('_csrf_token')),
+                body="Perl Body Text"),
                 follow_redirects=True)
             self.assertFalse(session.get('current_user'))
         posts = Post.query.filter_by(title="Perl").all()
