@@ -285,6 +285,21 @@ class TestView(BasicTest):
                 _csrf_token=session.get('_csrf_token')))
             self.assertFalse(session.get('current_user'))
 
+    def test_add_view_post_not_confirmed(self):
+        registered = Registration.query.filter_by(username="username1").first()
+        self.assertTrue(registered)
+        self.setup_posts()
+        with self.app as client:
+            client.post("/add", data=dict(
+                title="Perl",
+                body="Perl Body Text",
+                _csrf_token=session.get('_csrf_token')),
+                follow_redirects=True)
+            self.assertFalse(session.get('current_user'))
+        posts = Post.query.filter_by(title="Perl").all()
+        #Post does not contain posting
+        self.assertFalse(posts)
+
     def test_logout(self):
         with self.app as client:
             client.get('/login')
