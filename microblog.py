@@ -17,7 +17,8 @@ from sqlalchemy import or_
 # import pdb
 
 app = Flask(__name__)
-app.config.from_pyfile('config/config.cfg')
+# app.config.from_pyfile('config/config.cfg')
+app.config.from_pyfile('test_config.cfg')
 
 ###DON'T FORGET TO CHANGE THIS!!!
 app.debug = True
