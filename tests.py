@@ -72,6 +72,16 @@ class TestView(BasicTest):
     #         email=self.registrant['email']).first()
     #     self.assertEqual(registered.email, self.registrant['email'])
 
+    def test_confirmation(self):
+        author = Author.query.filter_by(username="username1").first()
+        self.assertFalse(author)
+        registered = Registration.query.filter_by(username="username1").first()
+        self.assertTrue(registered)
+        with self.app as client:
+            client.get('/confirm/' + registered.key)
+        author = Author.query.filter_by(username="username1").first()
+        self.assertTrue(author)
+
     def test_registration_post_registered_email(self):
         with self.app as client:
             client.get('/register')
@@ -243,19 +253,18 @@ class TestView(BasicTest):
                 username=self.username,
                 password='wrong',
                 _csrf_token=session.get('_csrf_token')))
-            current_user = session.get('current_user')
-        self.assertFalse(current_user)
+            self.assertFalse(session.get('current_user'))
 
     def test_login_empty(self):
         with self.app as client:
             client.get('/login')
             client.post('/login', data=dict(
                 _csrf_token=session.get('_csrf_token')))
-            current_user = session.get('current_user')
-        self.assertFalse(current_user)
+            self.assertFalse(session.get('current_user'))
 
     #When TESTING=True, this stops working
     def test_login_post_forbidden(self):
+        """Prevents non-CSRF access"""
         with self.app as client:
             client.get('/login')
             client.post('/login', data=dict(
@@ -263,6 +272,18 @@ class TestView(BasicTest):
                 password=self.password),
                 follow_redirects=True)
             self.assertIsNone(session.get('current_user'))
+
+    def test_login_registration_not_confirmed(self):
+        """Temp users cannot login"""
+        registered = Registration.query.filter_by(username="username1").first()
+        self.assertTrue(registered)
+        with self.app as client:
+            client.get('/login')
+            client.post('/login', data=dict(
+                username='wrong',
+                password=self.password,
+                _csrf_token=session.get('_csrf_token')))
+            self.assertFalse(session.get('current_user'))
 
     def test_logout(self):
         with self.app as client:
